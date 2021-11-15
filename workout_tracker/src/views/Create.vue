@@ -9,7 +9,7 @@
     <!-- Create form -->
     <div class="flex items-start p-8 rounded-md shadow-lg bg-light-grey">
       <!-- Form -->
-      <form class="flex flex-col w-full gap-y-5">
+      <form @submit.prevent="createWorkout" class="flex flex-col w-full gap-y-5">
         <h1 class="text-2xl text-at-light-green">Record Workout</h1>
 
         <!-- Workout Name -->
@@ -20,7 +20,13 @@
         <!-- Workout Type -->
         <div class="flex flex-col">
           <label for="workout-type" class="mb-1 text-sm text-at-light-green">Workout Type</label>
-          <select id="workout-type" class="p-2 text-gray-500 focus:outline-none" required v-model="workoutType">
+          <select 
+            id="workout-type" 
+            class="p-2 text-gray-500 focus:outline-none" 
+            required 
+            @change="workoutChange"
+            v-model="workoutType"
+          >
             <option value="select-workout">Select Workout</option>
             <option value="strength">Strength Training</option>
             <option value="cardio">Cardio</option>
@@ -49,9 +55,17 @@
               <label for="weight" class="mb-1 text-sm text-at-light-green">Weight (LB's)</label>
               <input type="text" class="w-full p-2 text-gray-500 focus:outline-none" required v-model="item.weight" />
             </div>
-            <img src="@/assets/images/trash-light-green.png" class="absolute w-auto h-4 cursor-pointer -left-5" alt="trash" />
+            <img 
+            @click="deleteExercise(item.id)"
+            src="@/assets/images/trash-light-green.png" 
+            class="absolute w-auto h-4 cursor-pointer -left-5" 
+            alt="trash" />
           </div>
-            <button type="button" class="self-start px-6 py-2 mt-6 text-sm text-white duration-200 border-2 border-transparent border-solid rounded-sm bg-at-light-green hover:border-white hover:bg-white hover:text-at-light-green">
+            <button
+              @click="addExercise"
+               type="button"
+               class="self-start px-6 py-2 mt-6 text-sm text-white duration-200 border-2 border-transparent border-solid rounded-sm bg-at-light-green hover:border-white hover:bg-white hover:text-at-light-green"
+            >
               Add Exercise
             </button>
         </div>
@@ -82,13 +96,24 @@
               <label for="pace" class="mb-1 text-sm text-at-light-green">Pace</label>
               <input type="text" class="w-full p-2 text-gray-500 focus:outline-none" required v-model="item.pace" />
             </div>
-            <img src="@/assets/images/trash-light-green.png" class="absolute w-auto h-4 cursor-pointer -left-5" alt="trash" />
+            <img 
+              @click="deleteExercise(item.id)"
+              src="@/assets/images/trash-light-green.png" 
+              class="absolute w-auto h-4 cursor-pointer -left-5" 
+              alt="trash" />
           </div>
-            <button type="button" class="self-start px-6 py-2 mt-6 text-sm text-white duration-200 border-2 border-transparent border-solid rounded-sm bg-at-light-green hover:border-white hover:bg-white hover:text-at-light-green">
+            <button 
+              @click="addExercise"
+              type="button"
+              class="self-start px-6 py-2 mt-6 text-sm text-white duration-200 border-2 border-transparent border-solid rounded-sm bg-at-light-green hover:border-white hover:bg-white hover:text-at-light-green"
+            >
               Add Exercise
             </button>
         </div>
-       <button type="submit" class="self-start px-6 py-2 mt-6 text-sm text-white duration-200 border-2 border-transparent border-solid rounded-sm bg-at-light-green hover:border-white hover:bg-white hover:text-at-light-green">
+       <button
+        type="submit" 
+        class="self-start px-6 py-2 mt-6 text-sm text-white duration-200 border-2 border-transparent border-solid rounded-sm bg-at-light-green hover:border-white hover:bg-white hover:text-at-light-green"
+       >
          Record Workout
         </button>
       </form>
@@ -98,6 +123,8 @@
 
 <script>
 import { ref } from "vue";
+import { uid } from "uid";
+import { supabase } from '../supabase/init';
 export default {
   name: "create",
   setup() {
@@ -108,14 +135,68 @@ export default {
     const statusMsg = ref(null);
     const errorMsg = ref(null);
     // Add exercise
-
+    const addExercise = () => {
+      if (workoutType.value === 'strength') {
+        exercises.value.push({
+          id: uid(),
+          exercise: "",
+          sets: "",
+          reps: "",
+          weight: ""
+        });
+        return;
+      }
+      exercises.value.push({
+        id: uid(),
+        cardioType: "",
+        distance: "",
+        duration: "",
+        pace: ""
+      })
+    }
     // Delete exercise
-
+    const deleteExercise = (id) => {
+      if (exercises.value.length > 1) {
+        exercises.value = exercises.value.filter(exercise => exercise.id !== id);
+        return;
+      }
+      errorMsg.value = "Error: Cannot remove, need to at least have one exercise";
+      setTimeout(() => {
+        errorMsg.value = false;
+      }, 5000)
+    }
     // Listens for chaging of workout type input
-
+    const workoutChange = () => {
+      exercises.value = [];
+      addExercise()
+    }
     // Create workout
+    const createWorkout = async () => {
+      try {
+        const {error} = await supabase.from('workouts').insert([
+          {
+            workoutName: workoutName.value,
+            workoutType: workoutType.value,
+            exercises: exercises.value
+          }
+        ]);
+        if (error) throw error;
+        statusMsg.value = 'Success: Workout Created!'
+        workoutName.value = null;
+        workoutType.value = "select-workout";
+        exercises.value = [];
+        setTimeout(() => {
+          statusMsg.value = false;
+        }, 5000)
+      } catch (error) {
+        errorMsg.value = `Error: ${error.message}`;
+        setTimeout(() => {
+          errorMsg.value = false;
+        }, 5000)
+      }
+    }
 
-    return { workoutName, workoutType, exercises, statusMsg, errorMsg};
+    return { workoutName, workoutType, exercises, statusMsg, errorMsg, addExercise, workoutChange, deleteExercise, createWorkout };
   },
 };
 </script>
