@@ -15,7 +15,7 @@
     <div v-else class="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
       <router-link 
         class="flex flex-col items-center p-8 shadow-md cursor-pointer bg-light-grey"
-        :to="{name: ''}"  
+        :to="{name: 'View-Workout', params: {workoutId: workout.id}}"  
         v-for="(workout, index) in data"
         :key="index"
       >
